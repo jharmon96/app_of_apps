@@ -1,6 +1,6 @@
 global:
-  targetRevision: initialization
-  repoURL: https://github.com:gh-ai-solu/app-of-apps.git
+  targetRevision: master
+  repoURL: https://github.com:jharmon96/appofapps.git
   # Changes depending on environment with `--set global.env=$ENV`
   env: local
 
