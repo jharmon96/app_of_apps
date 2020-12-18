@@ -1,0 +1,36 @@
+{{- $repos := list .Values.repoURL .Values.global.repoURL }}
+{{- range $_, $v := .Values.apps }}
+{{- $repos = append $repos $v.repoURL }}
+{{- end }}
+{{- if .Values.create }}
+
+{{- /*
+Only create AppProjects if >0 apps are specified, in other words, don't create empty AppProjects
+*/ -}}
+{{- if gt (len (values (default (dict) .Values.apps))) 0 }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: {{ .Chart.Name }}
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "{{- coalesce .Values.projectSyncWave -5 }}"
+spec:
+  description: "ArgoCD project for {{ .Chart.Name }}"
+  sourceRepos:
+    {{- range $r := ($repos | uniq | compact) }}
+    - {{ . | quote }}
+    {{- end }}
+  roles:
+{{- tpl (toYaml .Values.roles) $ | nindent 4 }}
+  destinations:
+{{- tpl (toYaml .Values.destinations) $ | nindent 4 }}
+  clusterResourceWhitelist:
+{{- tpl (toYaml .Values.clusterResourceWhitelist) $ | nindent 4 }}
+  namespaceResourceWhitelist:
+{{- tpl (toYaml .Values.namespaceResourceWhitelist) $ | nindent 4 }}
+  namespaceResourceBlacklist:
+{{- tpl (toYaml .Values.namespaceResourceBlacklist) $ | nindent 4 }}
+{{- end }}
+{{- end }}

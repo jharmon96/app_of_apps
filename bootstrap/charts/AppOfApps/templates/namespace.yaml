@@ -1,0 +1,21 @@
+{{- range $k, $app := .Values.apps }}
+{{- $ns := $.Values.namespace | deepCopy }}
+---
+{{- with deepCopy (default (dict) $app.namespace) | mergeOverwrite $ns }}
+{{- if .create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .name | default (printf "%s-%s" $.Chart.Name $k) }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+{{- if .annotations }}
+{{- toYaml .annotations | nindent 4 }}
+{{- end }}
+{{- if .labels }}
+  labels:
+{{- toYaml .labels | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

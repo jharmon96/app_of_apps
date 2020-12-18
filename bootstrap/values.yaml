@@ -1,0 +1,8 @@
+global:
+  targetRevision: initialization
+  repoURL: https://github.com:gh-ai-solu/app-of-apps.git
+  # Changes depending on environment with `--set global.env=$ENV`
+  env: local
+
+  # Extra variables used for inline templating
+  hostname: local

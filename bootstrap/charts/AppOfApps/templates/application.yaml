@@ -1,0 +1,130 @@
+{{- range $key, $app := .Values.apps }}
+{{- $ns := $.Values.namespace | deepCopy }}
+{{- if or (.create) (eq (.create | toString) "<nil>") }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ $.Chart.Name }}-{{ $key }}
+  namespace: demo
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ $app.wave | default 0 | quote }}
+spec:
+  project: {{ $.Chart.Name }}
+
+  source:
+    repoURL: {{ coalesce $app.repoURL $.Values.repoURL $.Values.global.repoURL }}
+    targetRevision: {{ coalesce $app.targetRevision $.Values.targetRevision $.Values.global.targetRevision `HEAD` }}
+    path: {{ tpl $app.path $ | required (printf "No path found for %s" $key) }}
+
+    {{- /*
+    A passthrough to helm values, primarily so we can treat ArgoCD's default `spec.source.helm.values` as a proper
+      map instead of the inline string.
+    */ -}}
+    {{- with $app.helm }}
+    helm:
+      {{- with .releaseName }}
+      releaseName: {{ . }}
+      {{- end }}
+      {{- with .parameters }}
+      parameters:
+      {{- range $p := . }}
+        - name: {{ $p.name }}
+          value: {{ tpl $p.value $ }}
+      {{- end }}
+      {{- end }}
+      {{- with .valueFiles }}
+      valueFiles:
+      {{- range $v := . }}
+        - {{ tpl $v $ }}
+      {{- end }}
+      {{- end }}
+      {{- if .values }}
+      values: |
+{{- tpl (toYaml .values) $ | nindent 8 }}
+      {{- end }}
+    {{- end -}}
+
+    {{- /*
+    An explicit passthrough of values to `spec.source.kustomize`
+    */ -}}
+    {{- with $app.kustomize }}
+    kustomize:
+      {{- with .version }}
+      version: {{ . }}
+      {{- end }}
+      {{- with .namePrefix }}
+      namePrefix: {{ . }}
+      {{- end }}
+      images:
+      {{- range $i := .images }}
+        - {{ $i }}
+      {{- end }}
+    {{- end -}}
+
+    {{- /*
+    An explicit passthrough of values to `spec.source.directory`
+    */ -}}
+    {{- with $app.directory }}
+    directory:
+      recurse: {{ .recurse }}
+      jsonnet:
+        extVars:
+        {{- range $e := .jsonnet.extVars }}
+          - name: {{ $e.name }}
+            value: {{ $e.value }}
+            code: {{ $e.code | default false }}
+        {{- end }}
+        tlas:
+        {{- range $t := .jsonnet.extVars }}
+          - name: {{ $t.name }}
+            value: {{ $t.value }}
+            code: {{ $t.code | default false }}
+        {{- end }}
+    {{- end }}
+
+  destination:
+    server: {{ coalesce $app.cluster $.Values.cluster $.Values.global.cluster `https://kubernetes.default.svc` }}
+    namespace: {{ get (deepCopy (default (dict) $app.namespace) | mergeOverwrite $ns) "name" | default (printf "%s-%s" $.Chart.Name $key) }}
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace={{ $.Values.sync.createNamespace }}
+      - Validate={{ $.Values.sync.validate }}
+    automated:
+      prune: {{ $.Values.sync.prune }}
+      selfHeal: {{ $.Values.sync.selfHeal }}
+    retry:
+      limit: {{ $.Values.sync.retry.limit }}
+      backoff:
+        duration: {{ $.Values.sync.retry.backoff.duration }}
+        factor: {{ $.Values.sync.retry.backoff.factor }}
+        maxDuration: {{ $.Values.sync.retry.backoff.maxDuration }}
+
+  {{/*
+  An explicit passthrough of values to `spec.ignoreDifferences`
+  */ -}}
+  {{- with $app.ignoreDifferences -}}
+  ignoreDifferences:
+    {{- range $d := . }}
+    - name: {{ $d.name }}
+      {{- with .kind }}
+      kind: {{ . }}
+      {{- end }}
+      {{- with .group }}
+      group: {{ . }}
+      {{- end }}
+      {{- with .namespace }}
+      namespace: {{ . }}
+      {{- end }}
+      jsonPointers:
+      {{- range $jp := $d.jsonPointers }}
+        - {{ $jp }}
+      {{- end }}
+    {{ end }}
+  {{- end }}
+
+{{- end }}
+{{- end }}

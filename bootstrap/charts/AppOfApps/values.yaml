@@ -1,0 +1,81 @@
+# create -- Toggle creation of all resources
+create: true
+
+# cluster -- AppSet level value for Application `spec.destination.server`.  Overriden by app level `apps.*.cluster`
+# cluster: https://kubernetes.default.svc
+
+# targetRevision -- AppSet level value for Application `spec.source.targetRevision`.  Overridden by app level `apps.*.targetRevision`
+# targetRevision: HEAD
+
+# repoURL -- AppSet level value for application `spec.source.repoURL`.  Overridden by app level `apps.*.repoURL`
+# repoURL: 
+
+namespace:
+  # namespace.create -- Toggle creation of namespace along with ArgoCD application
+  create: true
+
+  # namespace.name -- Name of created namespace.  Defaults to application name, overridden by app level `apps.*.namespace.name`
+  # name: 
+
+  # namespace.labels -- Labels of created namespace.  Merged with app level `apps.*.namespace.labels`
+  labels: {}
+
+  # namespace.annotations -- Annotations of created namespace.  Merged with app level `apps.*.namespace.annotations`
+  annotations: {}
+
+# roles -- Directly passed to `roles` [here](https://argoproj.github.io/argo-cd/operator-manual/project.yaml).  Supports inline templating
+roles: []
+#  # A role which provides read-only access to all applications in the project
+#  - name: read-only
+#    description: Read-only privileges to my-project
+#    policies:
+#      - p, proj:my-project:read-only, applications, get, my-project/*, allow
+#    groups:
+#      - my-oidc-group
+
+# destinations -- Directly passed to `destinations` [here](https://argoproj.github.io/argo-cd/operator-manual/project.yaml).  Supports inline templating
+destinations:
+  - namespace: "*"
+    server: "https://kubernetes.default.svc"
+
+# clusterResourceWhitelist -- Directly passed to `clusterResourceWhitelist` [here](https://argoproj.github.io/argo-cd/operator-manual/project.yaml).  Supports inline templating
+clusterResourceWhitelist:
+  - group: "*"
+    kind: "*"
+
+# namespaceResourceWhitelist -- Directly passed to `namespaceResourceWhitelist` [here](https://argoproj.github.io/argo-cd/operator-manual/project.yaml).  Supports inline templating
+namespaceResourceWhitelist:
+  - group: "*"
+    kind: "*"
+
+# namespaceResourceBlacklist -- Directly passed to `namespaceResourceBlacklist` [here](https://argoproj.github.io/argo-cd/operator-manual/project.yaml).  Supports inline templating
+namespaceResourceBlacklist:
+  - group: ""
+    kind: ""
+
+sync:
+  # sync.createNamespace -- Namespace Auto-Creation ensures that namespace specified as the application destination exists in the destination cluster
+  createNamespace: false
+
+  # sync.validate -- Disables resource validation (equivalent to 'kubectl apply --validate=true')
+  validate: true
+
+  # sync.prune -- Specifies if resources should be pruned during auto-syncing ( false by default )
+  prune: true
+
+  # sync.selfHeal -- Specifies if partial app sync should be executed when resources are changed only in target Kubernetes cluster and no git change detected ( false by default )
+  selfHeal: true
+
+  retry:
+    # sync.retry.limit -- Number of failed sync attempt retries; unlimited number of attempts if less than 0
+    limit: 5
+
+    backoff:
+      # sync.retry.backoff.duration -- The amount to back off. Default unit is seconds, but could also be a duration (e.g. "2m", "1h")
+      duration: 5s
+
+      # sync.retry.backoff.factor -- A factor to multiply the base duration after each failed retry
+      factor: 2
+
+      # sync.retry.backoff.maxDuration -- The maximum amount of time allowed for the backoff strategy
+      maxDuration: 3m

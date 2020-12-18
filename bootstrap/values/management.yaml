@@ -1,0 +1,9 @@
+management:
+  projectSyncWave: '-4'
+  apps:
+    keycloak:
+      path: apps/management/keycloak
+      wave: -4
+      namespace:
+        create: true
+        name: auth
